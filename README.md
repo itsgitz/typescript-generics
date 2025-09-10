@@ -91,6 +91,65 @@ const todos = await fetchJSON<Todo[]>(
 
 In this case, we tell `fetchJSON` that `T` should be `Todo[]`, and TypeScript will ensure that the `todos` constant is correctly typed as an array of `Todo` objects.
 
+## Example 3: Generic Class with Constraints
+
+We can also create generic classes. A powerful feature to use with generic classes (and functions) is **constraints**. Constraints allow us to limit the kinds of types that can be used as a type argument.
+
+In `src/base-repository.ts`, we define a generic `InMemoryRepository<T>` that can work with any entity type, as long as that entity has an `id` property.
+
+First, we define a generic `Repository` interface:
+
+```typescript
+interface Repository<T> {
+  findById(id: string): Promise<T | null>;
+  findAll(): Promise<T[]>;
+  create(item: T): Promise<T>;
+  update(id: string, item: Partial<T>): Promise<T>;
+  delete(id: string): Promise<boolean>;
+}
+```
+
+Then, we implement this with a generic class that uses a constraint.
+
+```typescript
+class InMemoryRepository<T extends { id: string }> implements Repository<T> {
+  private store: Map<string, T> = new Map();
+
+  // ... implementation ...
+
+  async create(item: T): Promise<T> {
+    // We can safely access item.id because of the constraint
+    this.store.set(item.id, item);
+    return item;
+  }
+
+  // ... other methods
+}
+```
+
+The key part is `<T extends { id:string }>`. This tells TypeScript that `T` can be any type, as long as it has a property `id` of type `string`. This allows us to safely use `item.id` inside our class methods.
+
+### Usage
+
+We can now create repositories for different entities that match the constraint.
+
+```typescript
+// Entities that satisfy the constraint { id: string }
+type User = {
+  id: string;
+  name: string;
+};
+
+type Product = {
+  id: string;
+  name: string;
+  price: number;
+};
+
+const userRepository = new InMemoryRepository<User>();
+const productRepository = new InMemoryRepository<Product>();
+```
+
 ## How to Run
 
 1.  Install dependencies:
@@ -104,6 +163,9 @@ In this case, we tell `fetchJSON` that `T` should be `Todo[]`, and TypeScript wi
 
     # Run the generic function example
     bun src/api-client.ts
+
+    # Run the generic class example
+    bun src/base-repository.ts
     ```
 
 This will execute the `main` functions in each file and log the results to the console.
